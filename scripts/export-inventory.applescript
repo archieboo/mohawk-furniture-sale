@@ -27,33 +27,68 @@ on run argv
                     set numRows to row count
                     set numCols to column count
 
-                    -- Find the index of the `img` column from the header row
+                    -- Find column indices from the header row
                     set imgColIndex to -1
+                    set roomColIndex to -1
+                    set descColIndex to -1
                     repeat with c from 1 to numCols
                         set hdr to value of cell 1 of column c
-                        if hdr is not missing value and (hdr as text) is "img" then
-                            set imgColIndex to c
+                        if hdr is not missing value then
+                            set hdrStr to hdr as text
+                            if hdrStr is "img" then
+                                set imgColIndex to c
+                            else if hdrStr is "room" then
+                                set roomColIndex to c
+                            else if hdrStr is "description" then
+                                set descColIndex to c
+                            end if
                         end if
                     end repeat
 
                     -- Read all rows into CSV lines
                     repeat with r from 1 to numRows
-                        set rowParts to {}
+                        -- First pass: collect raw cell values for this row
+                        set rawVals to {}
                         repeat with c from 1 to numCols
                             set cellVal to value of cell r of column c
                             if cellVal is missing value then
-                                set cellStr to ""
+                                set end of rawVals to ""
                             else
-                                set cellStr to cellVal as text
+                                set end of rawVals to (cellVal as text)
                             end if
+                        end repeat
+
+                        -- Second pass: normalize columns and build CSV row
+                        set rowParts to {}
+                        repeat with c from 1 to numCols
+                            set cellStr to item c of rawVals
 
                             -- Normalize img column to basename (skip header row)
-                            -- If value is a bare number, expand to IMG_<n>.jpg to match image filenames
                             if c = imgColIndex and r > 1 and cellStr is not "" then
                                 if cellStr does not contain "." then
                                     set cellStr to "IMG_" & cellStr & ".jpg"
                                 else
                                     set cellStr to do shell script "basename " & quoted form of cellStr
+                                end if
+                            end if
+
+                            -- Normalize room column (skip header row)
+                            if c = roomColIndex and r > 1 and cellStr is not "" then
+                                set roomLower to do shell script "echo " & quoted form of cellStr & " | tr '[:upper:]' '[:lower:]'"
+                                set descStr to ""
+                                if descColIndex > 0 then set descStr to item descColIndex of rawVals
+                                set descLower to do shell script "echo " & quoted form of descStr & " | tr '[:upper:]' '[:lower:]'"
+
+                                if roomLower contains "bedroom" then
+                                    set cellStr to "Bedroom"
+                                else if roomLower is in {"familyroom", "lounge", "library", "game room"} then
+                                    if descLower contains "desk" then
+                                        set cellStr to "Office"
+                                    else
+                                        set cellStr to "Living space"
+                                    end if
+                                else if roomLower is in {"dining room", "kitchen"} then
+                                    set cellStr to "Dining"
                                 end if
                             end if
 

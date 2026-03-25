@@ -61,6 +61,11 @@ Exports `mohawk-furnitures/mohawk-furnitures.numbers` → `mohawk-furnitures/inv
 
 - Exports the single table's data only (no table name header row).
 - The `img` column must contain only the basename of the image file (e.g., `IMG_1521.jpg`), not a full path.
+- The `room` column is normalized during export according to these rules (case-insensitive matching):
+  - **Bedroom**: any room value containing "bedroom"
+  - **Living space**: familyroom, lounge, library, game room — unless the item's description contains "desk", in which case → **Office**
+  - **Dining**: dining room, kitchen
+  - All other room values are passed through unchanged.
 
 ## File Scope
 
