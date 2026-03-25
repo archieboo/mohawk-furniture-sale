@@ -21,7 +21,7 @@ A furniture and arts sale site for Mohawk.
     - all info should refer to the `./mohawk-furnitures/inventory.csv` file, and all photos files of furniture and art are also in `./mohawk-furnitures/` (the jpg files)
     - each item should include: photo, dimension, discription, room, price
 
-- Inventory is manually maintained in an Apple Numbers spreadsheet and exported to CSV for use by the web frontend.
+- Inventory is maintained in a Google Spreadsheet (open access) and exported to CSV for use by the web frontend.
 
 ## Hosting
 
@@ -38,32 +38,44 @@ A furniture and arts sale site for Mohawk.
 
 ```
 mohawk-furnitures/
-  mohawk-furnitures.numbers   # Source of truth for inventory data (1 sheet, 1 table)
   inventory.csv               # Generated — do not edit manually
-  IMG_*.jpg                   # Product images; filenames are referenced in the `img` column of the Numbers table
+  IMG_*.jpg                   # Product images; filenames are referenced in the `img` column of the spreadsheet
 scripts/
-  *.applescript               # Automation scripts, run via `osascript`
+  export-inventory.py         # Downloads and normalizes inventory from Google Sheets
+  watch-inventory.py          # Watches for changes, updates CSV, and reloads Chrome
 ```
+
+**Google Spreadsheet:** https://docs.google.com/spreadsheets/d/1XcStNOGD14LMi8EZuNEQ8QO2llGNcES57u7gIBDTBco/edit?usp=sharing
 
 ## Running Scripts
 
-All scripts live in `./scripts/` and are executed headlessly from the terminal:
+Scripts use Python with the `ds` conda environment (requires pandas). Run from the repo root:
 
 ```bash
-osascript scripts/<script-name>.applescript
+conda run -n ds python scripts/export-inventory.py
 ```
 
 ## Scripts
 
-### export-inventory.applescript
+### Inventory update workflow
 
-Exports `mohawk-furnitures/mohawk-furnitures.numbers` → `mohawk-furnitures/inventory.csv`.
+The inventory source is a Google Spreadsheet maintained manually. To pick up changes:
 
-- Exports the single table's data only (no table name header row).
-- The `img` column must contain only the basename of the image file (e.g., `IMG_1521.jpg`), not a full path.
-- The `room` column is normalized during export according to these rules (case-insensitive matching):
+1. Edit the Google Spreadsheet directly.
+2. Run `conda run -n ds python scripts/watch-inventory.py` (or `export-inventory.py`) to pull the latest data into `mohawk-furnitures/inventory.csv`.
+3. Commit the updated CSV to publish the changes to the site.
+
+`watch-inventory.py` can be run manually at any time to check for upstream changes — it fetches the latest sheet, reports what (if anything) changed, updates the CSV, and reloads the local Chrome tab if a diff is found.
+
+### export-inventory.py
+
+Downloads the Google Spreadsheet as CSV → `mohawk-furnitures/inventory.csv`.
+
+- Fetches the sheet via Google Sheets CSV export URL (no auth required — sheet is open access).
+- The `IMG` column must contain only the basename of the image file (e.g., `IMG_1521.jpg`), not a full path.
+- The `ROOM` column is normalized during export according to these rules (case-insensitive matching):
   - **Bedroom**: any room value containing "bedroom"
-  - **Living space**: familyroom, lounge, library, game room — unless the item's description contains "desk", in which case → **Office**
+  - **Living space**: family room, living room, lounge, library, game room — unless the item's description contains "desk", in which case → **Office**
   - **Dining**: dining room, kitchen
   - All other room values are passed through unchanged.
 

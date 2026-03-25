@@ -233,9 +233,11 @@
     }
 
     .product-brand {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: #8c6e4b;
+      margin-bottom: 0.3rem;
     }
 
     .product-dim {
@@ -545,7 +547,7 @@
   // ── CSV Parser ─────────────────────────────────────────────────────────────
   function parseCSV(text) {
     const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
     return lines.slice(1).map(line => {
       const values = [];
       let cur = '', inQuote = false;
@@ -559,7 +561,7 @@
       const obj = {};
       headers.forEach((h, i) => obj[h] = values[i] || '');
       return obj;
-    }).filter(obj => obj['Avail'] === 'Y');
+    }).filter(obj => obj['AVAIL'] === 'Y');
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -583,7 +585,7 @@
     typeEl.innerHTML = '';
     typeEl.appendChild(typeLabel);
 
-    const types = ['All', ...uniqueOrdered(inventory.map(i => i.Type).filter(Boolean))];
+    const types = ['All', ...uniqueOrdered(inventory.map(i => i.TYPE).filter(Boolean))];
     types.forEach(t => {
       const btn = document.createElement('button');
       btn.className = 'filter-pill' + (t === activeType ? ' active' : '');
@@ -603,8 +605,8 @@
     roomEl.innerHTML = '';
     roomEl.appendChild(roomLabel);
 
-    const subset = activeType === 'All' ? inventory : inventory.filter(i => i.Type === activeType);
-    const rooms = ['All', ...uniqueOrdered(subset.map(i => i.Room).filter(Boolean))];
+    const subset = activeType === 'All' ? inventory : inventory.filter(i => i.TYPE === activeType);
+    const rooms = ['All', ...uniqueOrdered(subset.map(i => i.ROOM).filter(Boolean))];
     rooms.forEach(r => {
       const btn = document.createElement('button');
       btn.className = 'filter-pill' + (r === activeRoom ? ' active' : '');
@@ -625,8 +627,8 @@
     const countEl = document.getElementById('gridCount');
 
     let items = inventory;
-    if (activeType !== 'All') items = items.filter(i => i.Type === activeType);
-    if (activeRoom !== 'All') items = items.filter(i => i.Room === activeRoom);
+    if (activeType !== 'All') items = items.filter(i => i.TYPE === activeType);
+    if (activeRoom !== 'All') items = items.filter(i => i.ROOM === activeRoom);
 
     if      (activeRoom !== 'All') titleEl.textContent = activeRoom;
     else if (activeType !== 'All') titleEl.textContent = activeType;
@@ -640,20 +642,20 @@
     }
 
     grid.innerHTML = items.map(item => {
-      const price  = formatPrice(item.price);
-      const inCart = cart.some(c => c.item.id === item.id);
-      const qty    = item.quantity ? parseInt(item.quantity) : 0;
-      const imgSrc = item.Img ? `mohawk-furnitures/${item.Img}` : '';
+      const price  = formatPrice(item.PRICE);
+      const inCart = cart.some(c => c.item.ID === item.ID);
+      const qty    = item.QUANTITY ? parseInt(item.QUANTITY) : 0;
+      const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
       return `
         <div class="product-card">
           <div class="product-img-wrap">
-            ${imgSrc ? `<img src="${imgSrc}" alt="${item.Description}" loading="lazy">` : ''}
+            ${imgSrc ? `<img src="${imgSrc}" alt="${item.DESCRIPTION}" loading="lazy">` : ''}
           </div>
           <div class="product-body">
-            <div class="product-room">${item.Room || ''}</div>
-            <div class="product-desc">${item.Description || ''}</div>
-            ${item.Brand     ? `<div class="product-brand">${item.Brand}</div>` : ''}
-            ${item.Dimension ? `<div class="product-dim">${item.Dimension}</div>` : ''}
+            <div class="product-room">${item.ROOM || ''}</div>
+            ${item.BRAND     ? `<div class="product-brand">${item.BRAND}</div>` : ''}
+            <div class="product-desc">${item.DESCRIPTION || ''}</div>
+            ${item.DIMENSION ? `<div class="product-dim">${item.DIMENSION}</div>` : ''}
             <div class="product-footer">
               <div>
                 ${price
@@ -662,7 +664,7 @@
                 ${qty > 1 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
               </div>
               <button class="add-to-cart ${inCart ? 'added' : ''}"
-                      data-id="${item.id}">
+                      data-id="${item.ID}">
                 ${inCart ? 'Added ✓' : 'Add to Cart'}
               </button>
             </div>
@@ -678,7 +680,7 @@
 
   // ── Cart Logic ─────────────────────────────────────────────────────────────
   function addToCart(itemId) {
-    const item = inventory.find(i => i.id === itemId);
+    const item = inventory.find(i => i.ID === itemId);
     if (!item) return;
     cart.push({ item, cartId: itemId + '_' + Date.now() });
     updateCartUI();
@@ -708,18 +710,18 @@
     let total = 0, hasUnpriced = false;
 
     itemsEl.innerHTML = cart.map(({ item, cartId }) => {
-      const price = formatPrice(item.price);
-      if (item.price && parseFloat(item.price)) total += parseFloat(item.price);
+      const price = formatPrice(item.PRICE);
+      if (item.PRICE && parseFloat(item.PRICE)) total += parseFloat(item.PRICE);
       else hasUnpriced = true;
-      const imgSrc = item.Img ? `mohawk-furnitures/${item.Img}` : '';
+      const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
       return `
         <div class="cart-item">
           ${imgSrc
-            ? `<img class="cart-item-img" src="${imgSrc}" alt="${item.Description}">`
+            ? `<img class="cart-item-img" src="${imgSrc}" alt="${item.DESCRIPTION}">`
             : `<div class="cart-item-img"></div>`}
           <div class="cart-item-info">
-            <div class="cart-item-desc">${item.Description}</div>
-            <div class="cart-item-room">${item.Room}</div>
+            <div class="cart-item-desc">${item.DESCRIPTION}</div>
+            <div class="cart-item-room">${item.ROOM}</div>
             <div class="cart-item-price">${price || 'Inquire for price'}</div>
           </div>
           <button class="cart-item-remove" data-cartid="${cartId}" aria-label="Remove">&times;</button>
@@ -757,21 +759,21 @@
     doc.text('Mohawk Furniture & Art Sale', 105, 24, { align: 'center' });
     doc.setFontSize(9);
     doc.setTextColor(100);
-    doc.text('Estate Sale — Item Selection', 105, 31, { align: 'center' });
+    doc.text('Items selected', 105, 31, { align: 'center' });
     doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 105, 37, { align: 'center' });
     doc.setTextColor(0);
 
     // Table
     let total = 0, hasUnpriced = false;
     const rows = cart.map(({ item }) => {
-      const p = item.price ? parseFloat(item.price) : null;
+      const p = item.PRICE ? parseFloat(item.PRICE) : null;
       if (p) total += p; else hasUnpriced = true;
       return [
-        item.Description || '',
-        item.Room        || '',
-        item.Type        || '',
-        item.Brand       || '—',
-        item.Dimension   || '—',
+        item.DESCRIPTION || '',
+        item.ROOM        || '',
+        item.TYPE        || '',
+        item.BRAND       || '—',
+        item.DIMENSION   || '—',
         p ? '$' + p.toLocaleString('en-US') : 'Inquire',
       ];
     });
