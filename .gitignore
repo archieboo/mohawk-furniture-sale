@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Numbers source file — large binary, not needed for the website
+mohawk-furnitures/mohawk-furnitures.numbers
