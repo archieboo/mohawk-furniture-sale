@@ -72,9 +72,10 @@ def fetch_and_normalize():
 def read_csv(path):
     try:
         df = pd.read_csv(path, dtype=str).fillna("")
-        if "id" not in df.columns:
+        df.columns = df.columns.str.strip().str.upper()
+        if "ID" not in df.columns:
             return {}
-        return {row["id"]: row.to_dict() for _, row in df.iterrows() if row.get("id")}
+        return {row["ID"]: row.to_dict() for _, row in df.iterrows() if row.get("ID")}
     except FileNotFoundError:
         return {}
 
@@ -87,13 +88,13 @@ def show_diff(old_path, new_df):
     try:
         old = read_csv(old_path)
         new_df_str = new_df.astype(str).fillna("")
-        if "id" not in new_df_str.columns:
-            print("No 'id' column found; skipping diff.")
+        if "ID" not in new_df_str.columns:
+            print("No 'ID' column found; skipping diff.")
             return True
         new = {
-            row["id"]: row.to_dict()
+            row["ID"]: row.to_dict()
             for _, row in new_df_str.iterrows()
-            if row.get("id")
+            if row.get("ID")
         }
 
         added = set(new) - set(old)
@@ -102,11 +103,11 @@ def show_diff(old_path, new_df):
         changes = 0
 
         for id_ in sorted(added):
-            print(f"  + ADDED:   {id_} — {new[id_].get('description', '').strip()}")
+            print(f"  + ADDED:   {id_} — {new[id_].get('DESCRIPTION', '').strip()}")
             changes += 1
 
         for id_ in sorted(removed):
-            print(f"  - REMOVED: {id_} — {old[id_].get('description', '').strip()}")
+            print(f"  - REMOVED: {id_} — {old[id_].get('DESCRIPTION', '').strip()}")
             changes += 1
 
         for id_ in sorted(common):
@@ -116,7 +117,7 @@ def show_diff(old_path, new_df):
                 if old[id_].get(field, "").strip() != new[id_].get(field, "").strip()
             ]
             if diffs:
-                print(f"  ~ CHANGED: {id_} — {new[id_].get('description', '').strip()}")
+                print(f"  ~ CHANGED: {id_} — {new[id_].get('DESCRIPTION', '').strip()}")
                 for d in diffs:
                     print(f"             {d}")
                 changes += 1
@@ -135,7 +136,7 @@ def reload_chrome():
     tell application "Google Chrome"
       repeat with w in windows
         repeat with t in tabs of w
-          if URL of t starts with "file://" and URL of t contains "mohawk-furniture-sale" then
+          if (URL of t starts with "file://" or URL of t starts with "http://localhost") and URL of t contains "mohawk" then
             reload t
           end if
         end repeat

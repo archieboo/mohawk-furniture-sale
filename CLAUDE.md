@@ -20,6 +20,7 @@ A furniture and arts sale site for Mohawk.
 - Description of each art or furniture piece: 
     - all info should refer to the `./mohawk-furnitures/inventory.csv` file, and all photos files of furniture and art are also in `./mohawk-furnitures/` (the jpg files)
     - each item should include: photo, dimension, discription, room, price
+    - each item should display its inventory ID in small, inconspicuous text below all other content (price, quantity, add-to-cart button)
 
 - Inventory is maintained in a Google Spreadsheet (open access) and exported to CSV for use by the web frontend.
 
@@ -33,7 +34,6 @@ A furniture and arts sale site for Mohawk.
   - PDF generation must be client-side (e.g., jsPDF via CDN)
   - All assets (images, CSV) served as static files from the repository
 
-
 ## Repository Structure
 
 ```
@@ -46,6 +46,15 @@ scripts/
 ```
 
 **Google Spreadsheet:** https://docs.google.com/spreadsheets/d/1XcStNOGD14LMi8EZuNEQ8QO2llGNcES57u7gIBDTBco/edit?usp=sharing
+
+
+## Image processing
+
+Using the inventory data from the Google Sheet, generate or improve item descriptions as follows. All updated descriptions should replace the originals in the CSV.
+
+- **General items:** Generate a new description only if the current one is fewer than 4 words. Keep it to a single concise line, 15 words maximum.
+- **Art items:** Always attempt to improve the existing description. Keep it short and concise, 10 words maximum.
+- Note for this step, you will need to access each image .jpg file. So ignore the `File Scope` for this step 
 
 ## Running Scripts
 
