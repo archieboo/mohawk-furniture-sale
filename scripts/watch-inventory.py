@@ -8,6 +8,7 @@ Usage: conda run -n ds python scripts/watch-inventory.py
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,55 @@ with open(os.path.join(SCRIPT_DIR, "config.yml")) as _f:
 SHEET_ID = _cfg["sheet_id"]
 EXPORT_URL = _cfg["export_url"]
 CSV_FILE = os.path.join(SCRIPT_DIR, "..", "mohawk-furnitures", "inventory.csv")
+
+
+FRACTION_MAP = {
+    0.125: '⅛', 0.25: '¼', 0.333: '⅓', 0.375: '⅜',
+    0.5:   '½', 0.625: '⅝', 0.667: '⅔', 0.75:  '¾', 0.875: '⅞',
+}
+_EXISTING_FRACS = '½¼¾⅓⅔⅛⅜⅝⅞'
+_NUM = r'(\d+(?:\.\d+)?(?:[½¼¾⅓⅔⅛⅜⅝⅞])?|\d*[½¼¾⅓⅔⅛⅜⅝⅞])'
+
+
+def _to_frac(s):
+    if any(c in s for c in _EXISTING_FRACS):
+        return s.strip()
+    try:
+        val = float(s)
+    except ValueError:
+        return s.strip()
+    int_part = int(val)
+    dec = round(val - int_part, 3)
+    if dec == 0:
+        return str(int_part)
+    closest = min(FRACTION_MAP, key=lambda k: abs(k - dec))
+    if abs(closest - dec) < 0.02:
+        return (str(int_part) if int_part else '') + FRACTION_MAP[closest]
+    return s.strip()
+
+
+def normalize_dimension(val):
+    if not isinstance(val, str) or not val.strip():
+        return val
+    s = val.strip().replace('"', '').replace('\u201c', '').replace('\u201d', '')
+    if re.search(r'\bdia', s, re.IGNORECASE):
+        dia_m = re.search(_NUM + r'\s*(?:dia(?:m\.?)?)', s, re.IGNORECASE)
+        h_m   = re.search(_NUM + r'\s*h\b', s, re.IGNORECASE)
+        if dia_m:
+            parts = [_to_frac(dia_m.group(1)) + 'Dia']
+            if h_m:
+                parts.append(_to_frac(h_m.group(1)) + 'H')
+            return ' x '.join(parts) + ' (in)'
+    w_m = re.search(_NUM + r'\s*w\b', s, re.IGNORECASE)
+    d_m = re.search(_NUM + r'\s*d\b', s, re.IGNORECASE)
+    h_m = re.search(_NUM + r'\s*h\b', s, re.IGNORECASE)
+    if any([w_m, d_m, h_m]):
+        parts = []
+        if w_m: parts.append(_to_frac(w_m.group(1)) + 'W')
+        if h_m: parts.append(_to_frac(h_m.group(1)) + 'H')
+        if d_m: parts.append(_to_frac(d_m.group(1)) + 'D')
+        return ' x '.join(parts) + ' (in)'
+    return s
 
 
 def normalize_img(val):
@@ -62,6 +112,8 @@ def fetch_and_normalize():
     cols = {c.lower(): c for c in df.columns}
     if "img" in cols:
         df[cols["img"]] = df[cols["img"]].apply(normalize_img)
+    if "dimension" in cols:
+        df[cols["dimension"]] = df[cols["dimension"]].apply(normalize_dimension)
     if "room" in cols:
         desc_col = cols.get("description")
         desc = df[desc_col] if desc_col else pd.Series("", index=df.index)

@@ -91,6 +91,7 @@ Downloads the Google Spreadsheet as CSV → `mohawk-furnitures/inventory.csv`.
   - **Dining**: dining room, kitchen
   - **Outdoor**: any room value containing "courtyard", "terrace", "patio", "garden", or "outdoor"
   - All other room values are passed through unchanged.
+- The `DIMENSION` column is normalized to a consistent format, e.g. `72W x 30H x 26D (in)` or `50Dia x 16¼H (in)`. Decimal values are converted to Unicode fractions where possible. Both `export-inventory.py` and `watch-inventory.py` apply this normalization.
 
 ## Pricing Reference Page (`pricing.html`)
 
