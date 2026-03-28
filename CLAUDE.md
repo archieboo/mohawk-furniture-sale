@@ -43,6 +43,9 @@ mohawk-furnitures/
 scripts/
   export-inventory.py         # Downloads and normalizes inventory from Google Sheets
   watch-inventory.py          # Watches for changes, updates CSV, and reloads Chrome
+  generate_pricing.py         # Regenerates pricing.html from inventory.csv + resale_prices.json
+  resale_prices.json          # Suggested resale prices by item ID — edit this to adjust prices
+pricing.html                  # Internal resale price reference (unlisted, not linked from main site)
 ```
 
 **Google Spreadsheet:** https://docs.google.com/spreadsheets/d/1XcStNOGD14LMi8EZuNEQ8QO2llGNcES57u7gIBDTBco/edit?usp=sharing
@@ -50,11 +53,11 @@ scripts/
 
 ## Image processing
 
-Using the inventory data from the Google Sheet, generate or improve item descriptions as follows. All updated descriptions should replace the originals in the CSV.
+For this step, I'm giving you permission to process the image jpg files for items listed in the csv file. Based on `ID` and `DESCRIPTION` can you take a look at the images (jpgs).
 
-- **General items:** Generate a new description only if the current one is fewer than 4 words. Keep it to a single concise line, 15 words maximum.
-- **Art items:** Always attempt to improve the existing description. Keep it short and concise, 10 words maximum.
-- Note for this step, you will need to access each image .jpg file. So ignore the `File Scope` for this step 
+- **Goal**: make a thumnail from the jpg of each item, the thumnail is basicaly a crop of the jpg, focusing on just the item. The item should be based on the `ID` and `DESCRIPTION` of the item.
+- **Thumnail Naming**: the naming convention should follow: tn-[ID].jpg (or png if you generated png file)
+- You should ask me permission before you move on to the next item. 
 
 ## Running Scripts
 
@@ -86,7 +89,41 @@ Downloads the Google Spreadsheet as CSV → `mohawk-furnitures/inventory.csv`.
   - **Bedroom**: any room value containing "bedroom"
   - **Living space**: family room, living room, lounge, library, game room — unless the item's description contains "desk", in which case → **Office**
   - **Dining**: dining room, kitchen
+  - **Outdoor**: any room value containing "courtyard", "terrace", "patio", "garden", or "outdoor"
   - All other room values are passed through unchanged.
+
+## Pricing Reference Page (`pricing.html`)
+
+A separate internal page showing original vs. suggested resale prices. Not linked from the main site — accessible only by direct URL. Committed to the repo but unlisted.
+
+### Files
+- `scripts/resale_prices.json` — maps item ID → suggested resale price; edit this to change any price
+- `scripts/generate_pricing.py` — reads `inventory.csv` + `resale_prices.json`, writes `pricing.html`
+- Both `export-inventory.py` and `watch-inventory.py` call `generate_pricing.py` automatically after updating the CSV
+
+### Main site integration (`index.html`)
+- `index.html` fetches `scripts/resale_prices.json` at load time (alongside the CSV) and displays suggested prices on each product card
+- Price is labeled **"Suggested price"** on cards; the subtitle highlights **"prices negotiable"** in accent gold
+- Cart total is computed from suggested prices; shows `+` if any item lacks a price entry
+- PDF includes the suggested price per item and a suggested total; footer reads "All prices are suggested and negotiable"
+- If an item has no entry in `resale_prices.json`, it falls back to "Inquire for price"
+
+### Pricing logic
+Items are 5–6 years old in great condition. Retention rates by brand tier:
+
+| Brand tier | Retention |
+|---|---|
+| RH, Mitchell Gold+BW, Design Within Reach, Calligaris, Arhaus | 45–55% |
+| Room&Board, West Elm | 42–50% |
+| Generic/store-branded ("Dan Rak Design Purchased") | 37–42% |
+| Art | 37–43% |
+| Peloton equipment | ~47% (strong used market) |
+
+**Hard cap: Furniture items (TYPE=Furniture) max out at 40% retention** — use `floor(orig × 0.4)`.
+Art, Lighting, and Equipment are NOT subject to the 40% cap.
+The cap is applied manually in `resale_prices.json`; `generate_pricing.py` does not enforce it automatically.
+
+When adding a new furniture item to `resale_prices.json`, use `floor(orig × 0.4)` or lower as the resale price.
 
 ## File Scope
 

@@ -51,6 +51,8 @@ def normalize_room(room, desc):
         return "Office" if "desk" in d else "Living space"
     if r in ("dining room", "kitchen"):
         return "Dining"
+    if any(w in r for w in ("courtyard", "terrace", "patio", "garden", "outdoor")):
+        return "Outdoor"
     return room
 
 
@@ -157,6 +159,12 @@ def main():
 
     print("\nUpdating inventory.csv...")
     new_df.to_csv(CSV_FILE, index=False)
+
+    print("Regenerating pricing.html...")
+    subprocess.run(
+        [sys.executable, os.path.join(SCRIPT_DIR, "generate_pricing.py")],
+        check=False,
+    )
 
     print("Reloading Chrome...")
     reload_chrome()

@@ -131,6 +131,13 @@ def main():
     df.to_csv(OUT, index=False)
     print(f"Exported {len(df) + 1} rows (including header) to {OUT}")
 
+    print("Regenerating pricing.html...")
+    import subprocess
+    subprocess.run(
+        [sys.executable, os.path.join(_SCRIPT_DIR, "generate_pricing.py")],
+        check=False,
+    )
+
 
 if __name__ == "__main__":
     main()

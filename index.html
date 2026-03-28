@@ -63,6 +63,13 @@
       margin-top: 2px;
     }
 
+    .negotiable-tag {
+      color: var(--accent);
+      font-weight: 500;
+      border-bottom: 1px solid var(--accent);
+      padding-bottom: 1px;
+    }
+
     .cart-btn {
       background: none;
       border: 1px solid var(--border);
@@ -270,6 +277,14 @@
       justify-content: space-between;
       margin-top: auto;
       gap: 0.5rem;
+    }
+
+    .price-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.1rem;
     }
 
     .product-price {
@@ -540,7 +555,7 @@
 <header>
   <a class="site-brand" href="#">
     <div class="site-title">Mohawk Furniture &amp; Art Sale</div>
-    <div class="site-subtitle">Top quality and condition, prices negotiable</div>
+    <div class="site-subtitle">Top quality and condition, <span class="negotiable-tag">prices negotiable</span></div>
   </a>
   <button class="cart-btn" id="cartBtn">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -601,7 +616,7 @@
       <span class="cart-total-amount" id="cartTotal">$0</span>
     </div>
     <button class="pdf-btn" id="pdfBtn">Download Item List (PDF)</button>
-    <div class="cart-note">Items listed as &ldquo;Inquire&rdquo; are not included in the total.</div>
+    <div class="cart-note">Suggested prices — all prices are negotiable.</div>
   </div>
 </div>
 
@@ -610,6 +625,7 @@
 <script>
   // ── State ──────────────────────────────────────────────────────────────────
   let inventory = [];
+  let resalePrices = {};  // { itemId: number }
   let cart = [];          // [{ item, cartId }]
   let activeType = 'All';
   let activeRoom = 'All';
@@ -712,10 +728,14 @@
     }
 
     grid.innerHTML = items.map(item => {
-      const price  = formatPrice(item.PRICE);
+      const resale = resalePrices[item.ID];
       const inCart = cart.some(c => c.item.ID === item.ID);
       const qty    = item.QUANTITY ? parseInt(item.QUANTITY) : 0;
       const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
+      const priceHtml = resale
+        ? `<div class="price-label">Suggested price</div>
+           <div class="product-price">$${resale.toLocaleString('en-US')}</div>`
+        : `<div class="product-price no-price">Inquire for price</div>`;
       return `
         <div class="product-card">
           <div class="product-img-wrap" ${imgSrc ? `onclick="openLightbox('${imgSrc}', '${item.DESCRIPTION.replace(/'/g,"&#39;")}')"` : ''}>
@@ -728,7 +748,7 @@
             ${item.DIMENSION ? `<div class="product-dim">${item.DIMENSION}</div>` : ''}
             <div class="product-footer">
               <div>
-                <div class="product-price no-price">Inquire for price</div>
+                ${priceHtml}
                 ${qty > 1 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
               </div>
               <button class="add-to-cart ${inCart ? 'added' : ''}"
@@ -776,8 +796,16 @@
       return;
     }
 
+    let total = 0;
+    let hasUnpriced = false;
+
     itemsEl.innerHTML = cart.map(({ item, cartId }) => {
       const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
+      const resale = resalePrices[item.ID];
+      if (resale) total += resale; else hasUnpriced = true;
+      const priceText = resale
+        ? `Suggested: $${resale.toLocaleString('en-US')}`
+        : 'Inquire for price';
       return `
         <div class="cart-item">
           ${imgSrc
@@ -786,7 +814,7 @@
           <div class="cart-item-info">
             <div class="cart-item-desc">${item.DESCRIPTION}</div>
             <div class="cart-item-room">${item.ROOM}</div>
-            <div class="cart-item-price">Inquire for price</div>
+            <div class="cart-item-price">${priceText}</div>
           </div>
           <button class="cart-item-remove" data-cartid="${cartId}" aria-label="Remove">&times;</button>
         </div>`;
@@ -797,7 +825,9 @@
       btn.addEventListener('click', () => removeFromCart(btn.dataset.cartid));
     });
 
-    totalEl.textContent = 'Inquire for price';
+    totalEl.textContent = total > 0
+      ? '$' + total.toLocaleString('en-US') + (hasUnpriced ? '+' : '')
+      : 'Inquire for price';
   }
 
   function openCart() {
@@ -828,14 +858,20 @@
     doc.setTextColor(0);
 
     // Table
-    const rows = cart.map(({ item }) => [
-      item.DESCRIPTION || '',
-      item.ROOM        || '',
-      item.TYPE        || '',
-      item.BRAND       || '—',
-      item.DIMENSION   || '—',
-      'Inquire',
-    ]);
+    let pdfTotal = 0;
+    let pdfHasUnpriced = false;
+    const rows = cart.map(({ item }) => {
+      const resale = resalePrices[item.ID];
+      if (resale) pdfTotal += resale; else pdfHasUnpriced = true;
+      return [
+        item.DESCRIPTION || '',
+        item.ROOM        || '',
+        item.TYPE        || '',
+        item.BRAND       || '—',
+        item.DIMENSION   || '—',
+        resale ? '$' + resale.toLocaleString('en-US') : 'Inquire',
+      ];
+    });
 
     doc.autoTable({
       startY: 44,
@@ -858,7 +894,14 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(120);
-    doc.text('Prices available upon inquiry.', 14, finalY);
+    doc.text('All prices are suggested and negotiable.', 14, finalY);
+    if (pdfTotal > 0) {
+      const totalLabel = 'Suggested total: $' + pdfTotal.toLocaleString('en-US') + (pdfHasUnpriced ? '+' : '');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 26);
+      doc.text(totalLabel, 196, finalY, { align: 'right' });
+    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
@@ -875,17 +918,18 @@
   document.getElementById('pdfBtn').addEventListener('click', generatePDF);
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
-  fetch('mohawk-furnitures/inventory.csv')
-    .then(r => r.text())
-    .then(text => {
-      inventory = parseCSV(text);
-      renderFilters();
-      renderGrid();
-    })
-    .catch(() => {
-      document.getElementById('productGrid').innerHTML =
-        '<div class="no-results">Could not load inventory. Please try again.</div>';
-    });
+  Promise.all([
+    fetch('mohawk-furnitures/inventory.csv').then(r => r.text()),
+    fetch('scripts/resale_prices.json').then(r => r.json()).catch(() => ({})),
+  ]).then(([csvText, prices]) => {
+    resalePrices = prices;
+    inventory = parseCSV(csvText);
+    renderFilters();
+    renderGrid();
+  }).catch(() => {
+    document.getElementById('productGrid').innerHTML =
+      '<div class="no-results">Could not load inventory. Please try again.</div>';
+  });
 </script>
 <script>
   const lightbox     = document.getElementById('lightbox');
