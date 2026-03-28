@@ -46,6 +46,8 @@ def normalize_room(room, desc):
         return "Office" if "desk" in d else "Living space"
     if r in ("dining room", "kitchen"):
         return "Dining"
+    if any(w in r for w in ("courtyard", "terrace", "patio", "garden", "outdoor")):
+        return "Outdoor"
     return room
 
 
