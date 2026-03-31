@@ -222,6 +222,21 @@
       background: #eeebe6;
     }
 
+    .avail-badge {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 0.2em 0.55em;
+      border-radius: 2px;
+      z-index: 2;
+    }
+    .avail-badge.available { background: #e6f2ec; color: #2a7a4b; }
+    .avail-badge.reserved  { background: #fdf0e0; color: #b06a10; }
+
     .product-img-wrap img {
       position: absolute;
       inset: 0;
@@ -330,6 +345,7 @@
 
     .add-to-cart:hover { background: #383838; }
     .add-to-cart.added { background: var(--accent); }
+    .add-to-cart.reserved-btn, .add-to-cart.reserved-btn:hover { background: #c0b8b0; cursor: default; }
 
     /* ── Cart Drawer ── */
     .cart-overlay {
@@ -647,7 +663,7 @@
       const obj = {};
       headers.forEach((h, i) => obj[h] = values[i] || '');
       return obj;
-    }).filter(obj => obj['AVAIL'] === 'Y');
+    }).filter(obj => obj['AVAIL'] === 'Y' || obj['AVAIL'] === 'R');
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -731,15 +747,21 @@
       const resale = resalePrices[item.ID];
       const inCart = cart.some(c => c.item.ID === item.ID);
       const qty    = item.QUANTITY ? parseInt(item.QUANTITY) : 0;
-      const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
+      const imgSrc  = item.IMG       ? `mohawk-furnitures/${item.IMG}`       : '';
+      const thumbSrc = imgSrc;
       const priceHtml = resale
         ? `<div class="price-label">Suggested price</div>
            <div class="product-price">$${resale.toLocaleString('en-US')}</div>`
         : `<div class="product-price no-price">Inquire for price</div>`;
+      const isReserved = item.AVAIL === 'R';
+      const availBadge = isReserved
+        ? `<span class="avail-badge reserved">Reserved</span>`
+        : `<span class="avail-badge available">Available</span>`;
       return `
         <div class="product-card">
           <div class="product-img-wrap" ${imgSrc ? `onclick="openLightbox('${imgSrc}', '${item.DESCRIPTION.replace(/'/g,"&#39;")}')"` : ''}>
-            ${imgSrc ? `<img src="${imgSrc}" alt="${item.DESCRIPTION}" loading="lazy">` : ''}
+            ${thumbSrc ? `<img src="${thumbSrc}" alt="${item.DESCRIPTION}" loading="lazy">` : ''}
+            ${availBadge}
           </div>
           <div class="product-body">
             <div class="product-room">${item.ROOM || ''}</div>
@@ -751,9 +773,9 @@
                 ${priceHtml}
                 ${qty > 1 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
               </div>
-              <button class="add-to-cart ${inCart ? 'added' : ''}"
-                      data-id="${item.ID}">
-                ${inCart ? 'Added ✓' : 'Add to Cart'}
+              <button class="add-to-cart ${inCart ? 'added' : ''} ${isReserved ? 'reserved-btn' : ''}"
+                      data-id="${item.ID}" ${isReserved ? 'disabled' : ''}>
+                ${isReserved ? 'Reserved' : inCart ? 'Added ✓' : 'Add to Cart'}
               </button>
             </div>
             <div class="product-id">${item.ID}</div>
@@ -884,10 +906,22 @@
       },
       alternateRowStyles: { fillColor: [248, 246, 243] },
       columnStyles: {
-        0: { cellWidth: 52 },
+        0: { cellWidth: 52, cellPadding: { top: 4, right: 4, bottom: 8, left: 4 } },
         5: { halign: 'right', cellWidth: 22 },
       },
       margin: { left: 14, right: 14 },
+      didDrawCell: function(data) {
+        if (data.section === 'body' && data.column.index === 0) {
+          const id = cart[data.row.index].item.ID;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(170);
+          doc.text(id, data.cell.x + 4, data.cell.y + data.cell.height - 4);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(0);
+        }
+      },
     });
 
     const finalY = doc.lastAutoTable.finalY + 10;
