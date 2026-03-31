@@ -172,6 +172,14 @@
       border-top: 1px solid var(--border);
     }
 
+    .avail-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: auto;
+      padding-left: 2.5rem;
+    }
+
     /* ── Grid ── */
     .grid-container {
       max-width: 1440px;
@@ -593,6 +601,11 @@
 <div class="filters">
   <div class="filter-row" id="typeFilters">
     <span class="filter-label">Show:</span>
+    <div class="avail-filter-group">
+      <span class="filter-label">Availability:</span>
+      <button class="filter-pill active" id="availToggle">All Items</button>
+      <button class="filter-pill" id="availOnlyToggle">Available Only</button>
+    </div>
   </div>
   <div class="filter-row room-filters" id="roomFilters">
     <span class="filter-label">Room:</span>
@@ -645,6 +658,7 @@
   let cart = [];          // [{ item, cartId }]
   let activeType = 'All';
   let activeRoom = 'All';
+  let showAvailableOnly = false;
 
   // ── CSV Parser ─────────────────────────────────────────────────────────────
   function parseCSV(text) {
@@ -684,6 +698,7 @@
     // Type pills
     const typeEl = document.getElementById('typeFilters');
     const typeLabel = typeEl.querySelector('.filter-label');
+    const availGroup = typeEl.querySelector('.avail-filter-group');
     typeEl.innerHTML = '';
     typeEl.appendChild(typeLabel);
 
@@ -700,6 +715,8 @@
       });
       typeEl.appendChild(btn);
     });
+
+    if (availGroup) typeEl.appendChild(availGroup);
 
     // Room pills
     const roomEl = document.getElementById('roomFilters');
@@ -731,6 +748,7 @@
     let items = inventory;
     if (activeType !== 'All') items = items.filter(i => i.TYPE === activeType);
     if (activeRoom !== 'All') items = items.filter(i => i.ROOM === activeRoom);
+    if (showAvailableOnly) items = items.filter(i => i.AVAIL === 'Y');
 
     if      (activeRoom !== 'All') titleEl.textContent = activeRoom;
     else if (activeType !== 'All') titleEl.textContent = activeType;
@@ -958,6 +976,20 @@
   ]).then(([csvText, prices]) => {
     resalePrices = prices;
     inventory = parseCSV(csvText);
+
+    document.getElementById('availToggle').addEventListener('click', () => {
+      showAvailableOnly = false;
+      document.getElementById('availToggle').classList.add('active');
+      document.getElementById('availOnlyToggle').classList.remove('active');
+      renderGrid();
+    });
+    document.getElementById('availOnlyToggle').addEventListener('click', () => {
+      showAvailableOnly = true;
+      document.getElementById('availOnlyToggle').classList.add('active');
+      document.getElementById('availToggle').classList.remove('active');
+      renderGrid();
+    });
+
     renderFilters();
     renderGrid();
   }).catch(() => {
