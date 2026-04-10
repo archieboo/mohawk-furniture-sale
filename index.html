@@ -355,6 +355,38 @@
     .add-to-cart.added { background: var(--accent); }
     .add-to-cart.reserved-btn, .add-to-cart.reserved-btn:hover { background: #c0b8b0; cursor: default; }
 
+    .card-qty-control {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .card-qty-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 20px;
+      height: 20px;
+      font-size: 0.9rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .card-qty-btn:hover { border-color: var(--text); }
+    .card-qty-btn:disabled { opacity: 0.3; cursor: default; border-color: var(--border); }
+
+    .card-qty-val {
+      font-size: 0.78rem;
+      min-width: 14px;
+      text-align: center;
+    }
+
     /* ── Cart Drawer ── */
     .cart-overlay {
       position: fixed;
@@ -477,6 +509,38 @@
     }
 
     .cart-item-remove:hover { color: var(--text); }
+
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.35rem;
+    }
+
+    .cart-qty-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 22px;
+      height: 22px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: border-color 0.15s;
+    }
+
+    .cart-qty-btn:hover { border-color: var(--text); }
+    .cart-qty-btn:disabled { opacity: 0.35; cursor: default; border-color: var(--border); }
+
+    .cart-qty-val {
+      font-size: 0.82rem;
+      min-width: 16px;
+      text-align: center;
+    }
 
     .cart-footer {
       padding: 1.25rem 1.5rem 1.5rem;
@@ -655,7 +719,8 @@
   // ── State ──────────────────────────────────────────────────────────────────
   let inventory = [];
   let resalePrices = {};  // { itemId: number }
-  let cart = [];          // [{ item, cartId }]
+  let cart = {};          // { [itemId]: { item, qty } }
+  let pendingQty = {};    // { [itemId]: qty } — qty selected on card before adding
   let activeType = 'All';
   let activeRoom = 'All';
   let showAvailableOnly = false;
@@ -763,7 +828,7 @@
 
     grid.innerHTML = items.map(item => {
       const resale = resalePrices[item.ID];
-      const inCart = cart.some(c => c.item.ID === item.ID);
+      const inCart = !!cart[item.ID];
       const qty    = item.QUANTITY ? parseInt(item.QUANTITY) : 0;
       const imgSrc  = item.IMG       ? `mohawk-furnitures/${item.IMG}`       : '';
       const thumbSrc = imgSrc;
@@ -789,37 +854,86 @@
             <div class="product-footer">
               <div>
                 ${priceHtml}
-                ${qty > 1 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
+                ${qty > 0 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
               </div>
-              <button class="add-to-cart ${inCart ? 'added' : ''} ${isReserved ? 'reserved-btn' : ''}"
-                      data-id="${item.ID}" ${isReserved ? 'disabled' : ''}>
-                ${isReserved ? 'Reserved' : inCart ? 'Added ✓' : 'Add to Cart'}
-              </button>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem">
+                ${qty > 1 && !isReserved ? (() => {
+                  const current = inCart ? cart[item.ID].qty : (pendingQty[item.ID] || 1);
+                  const atMin = current <= 1;
+                  const atMax = current >= qty;
+                  return `<div class="card-qty-control">
+                    <button class="card-qty-btn" data-id="${item.ID}" data-delta="-1" ${atMin ? 'disabled' : ''}>−</button>
+                    <span class="card-qty-val">${current}</span>
+                    <button class="card-qty-btn" data-id="${item.ID}" data-delta="1" ${atMax ? 'disabled' : ''}>+</button>
+                  </div>`;
+                })() : ''}
+                <button class="add-to-cart ${inCart ? 'added' : ''} ${isReserved ? 'reserved-btn' : ''}"
+                        data-id="${item.ID}" ${isReserved ? 'disabled' : ''}>
+                  ${isReserved ? 'Reserved' : inCart ? 'Added ✓' : 'Add to Cart'}
+                </button>
+              </div>
             </div>
             <div class="product-id">${item.ID}</div>
           </div>
         </div>`;
     }).join('');
 
-    // Delegate click on add-to-cart buttons
+    // Delegate clicks
     grid.querySelectorAll('.add-to-cart').forEach(btn => {
       btn.addEventListener('click', () => addToCart(btn.dataset.id));
+    });
+    grid.querySelectorAll('.card-qty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const delta = parseInt(btn.dataset.delta);
+        const maxQty = parseInt(inventory.find(i => i.ID === id)?.QUANTITY) || 1;
+        if (cart[id]) {
+          setCartQty(id, cart[id].qty + delta);
+        } else {
+          pendingQty[id] = Math.max(1, Math.min((pendingQty[id] || 1) + delta, maxQty));
+          renderGrid();
+        }
+      });
     });
   }
 
   // ── Cart Logic ─────────────────────────────────────────────────────────────
+  function saveCart() {
+    const data = {};
+    Object.entries(cart).forEach(([id, { qty }]) => { data[id] = qty; });
+    localStorage.setItem('mohawk_cart', JSON.stringify(data));
+  }
+
   function addToCart(itemId) {
     const item = inventory.find(i => i.ID === itemId);
     if (!item) return;
-    cart.push({ item, cartId: itemId + '_' + Date.now() });
+    if (cart[itemId]) {
+      delete cart[itemId];
+      delete pendingQty[itemId];
+    } else {
+      const qty = pendingQty[itemId] || 1;
+      cart[itemId] = { item, qty };
+      delete pendingQty[itemId];
+    }
+    saveCart();
     updateCartUI();
     renderGrid();
   }
 
-  function removeFromCart(cartId) {
-    cart = cart.filter(c => c.cartId !== cartId);
+  function removeFromCart(itemId) {
+    delete cart[itemId];
+    saveCart();
     updateCartUI();
     renderGrid();
+  }
+
+  function setCartQty(itemId, qty) {
+    if (!cart[itemId]) return;
+    const maxQty = parseInt(cart[itemId].item.QUANTITY) || 1;
+    qty = Math.max(1, Math.min(qty, maxQty));
+    cart[itemId].qty = qty;
+    saveCart();
+    updateCartUI();
   }
 
   function updateCartUI() {
@@ -827,10 +941,12 @@
     const itemsEl = document.getElementById('cartItems');
     const totalEl = document.getElementById('cartTotal');
 
-    countEl.textContent = cart.length;
-    countEl.style.display = cart.length > 0 ? 'flex' : 'none';
+    const entries = Object.values(cart);
+    const totalQty = entries.reduce((s, { qty }) => s + qty, 0);
+    countEl.textContent = totalQty;
+    countEl.style.display = totalQty > 0 ? 'flex' : 'none';
 
-    if (cart.length === 0) {
+    if (entries.length === 0) {
       itemsEl.innerHTML = '<div class="cart-empty">Your cart is empty.</div>';
       totalEl.textContent = '$0';
       return;
@@ -839,13 +955,20 @@
     let total = 0;
     let hasUnpriced = false;
 
-    itemsEl.innerHTML = cart.map(({ item, cartId }) => {
+    itemsEl.innerHTML = entries.map(({ item, qty }) => {
       const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
       const resale = resalePrices[item.ID];
-      if (resale) total += resale; else hasUnpriced = true;
+      const maxQty = parseInt(item.QUANTITY) || 1;
+      if (resale) total += resale * qty; else hasUnpriced = true;
       const priceText = resale
-        ? `Suggested: $${resale.toLocaleString('en-US')}`
+        ? `$${(resale * qty).toLocaleString('en-US')}${qty > 1 ? ` (${qty} × $${resale.toLocaleString('en-US')})` : ''}`
         : 'Inquire for price';
+      const qtyControls = maxQty > 1 ? `
+        <div class="cart-item-qty">
+          <button class="cart-qty-btn" data-id="${item.ID}" data-delta="-1" ${qty <= 1 ? 'disabled' : ''}>−</button>
+          <span class="cart-qty-val">${qty}</span>
+          <button class="cart-qty-btn" data-id="${item.ID}" data-delta="1" ${qty >= maxQty ? 'disabled' : ''}>+</button>
+        </div>` : '';
       return `
         <div class="cart-item">
           ${imgSrc
@@ -854,15 +977,22 @@
           <div class="cart-item-info">
             <div class="cart-item-desc">${item.DESCRIPTION}</div>
             <div class="cart-item-room">${item.ROOM}</div>
+            ${qtyControls}
             <div class="cart-item-price">${priceText}</div>
           </div>
-          <button class="cart-item-remove" data-cartid="${cartId}" aria-label="Remove">&times;</button>
+          <button class="cart-item-remove" data-itemid="${item.ID}" aria-label="Remove">&times;</button>
         </div>`;
     }).join('');
 
-    // Delegate remove buttons
     itemsEl.querySelectorAll('.cart-item-remove').forEach(btn => {
-      btn.addEventListener('click', () => removeFromCart(btn.dataset.cartid));
+      btn.addEventListener('click', () => removeFromCart(btn.dataset.itemid));
+    });
+    itemsEl.querySelectorAll('.cart-qty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const delta = parseInt(btn.dataset.delta);
+        if (cart[id]) setCartQty(id, cart[id].qty + delta);
+      });
     });
 
     totalEl.textContent = total > 0
@@ -882,7 +1012,7 @@
 
   // ── PDF Generation ─────────────────────────────────────────────────────────
   function generatePDF() {
-    if (cart.length === 0) { alert('Your cart is empty.'); return; }
+    if (Object.keys(cart).length === 0) { alert('Your cart is empty.'); return; }
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -900,16 +1030,18 @@
     // Table
     let pdfTotal = 0;
     let pdfHasUnpriced = false;
-    const rows = cart.map(({ item }) => {
+    const cartEntries = Object.values(cart);
+    const rows = cartEntries.map(({ item, qty }) => {
       const resale = resalePrices[item.ID];
-      if (resale) pdfTotal += resale; else pdfHasUnpriced = true;
+      if (resale) pdfTotal += resale * qty; else pdfHasUnpriced = true;
+      const linePrice = resale ? '$' + (resale * qty).toLocaleString('en-US') : 'Inquire';
       return [
         item.DESCRIPTION || '',
         item.ROOM        || '',
         item.TYPE        || '',
         item.BRAND       || '—',
         item.DIMENSION   || '—',
-        resale ? '$' + resale.toLocaleString('en-US') : 'Inquire',
+        qty > 1 ? `${qty} × $${resale ? resale.toLocaleString('en-US') : '?'} = ${linePrice}` : linePrice,
       ];
     });
 
@@ -930,7 +1062,7 @@
       margin: { left: 14, right: 14 },
       didDrawCell: function(data) {
         if (data.section === 'body' && data.column.index === 0) {
-          const id = cart[data.row.index].item.ID;
+          const id = cartEntries[data.row.index].item.ID;
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
           doc.setTextColor(170);
@@ -964,7 +1096,13 @@
   }
 
   // ── Event Listeners ────────────────────────────────────────────────────────
-  document.getElementById('cartBtn').addEventListener('click', openCart);
+  document.getElementById('cartBtn').addEventListener('click', () => {
+    if (window.innerWidth >= 768) {
+      window.location.href = 'cart.html';
+    } else {
+      openCart();
+    }
+  });
   document.getElementById('cartClose').addEventListener('click', closeCart);
   document.getElementById('cartOverlay').addEventListener('click', closeCart);
   document.getElementById('pdfBtn').addEventListener('click', generatePDF);
@@ -976,6 +1114,17 @@
   ]).then(([csvText, prices]) => {
     resalePrices = prices;
     inventory = parseCSV(csvText);
+
+    // Restore cart from localStorage
+    const saved = JSON.parse(localStorage.getItem('mohawk_cart') || '{}');
+    Object.entries(saved).forEach(([itemId, qty]) => {
+      const item = inventory.find(i => i.ID === itemId);
+      if (item) {
+        const maxQty = parseInt(item.QUANTITY) || 1;
+        cart[itemId] = { item, qty: Math.max(1, Math.min(qty, maxQty)) };
+      }
+    });
+    updateCartUI();
 
     document.getElementById('availToggle').addEventListener('click', () => {
       showAvailableOnly = false;

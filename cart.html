@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Selection — Mohawk Furniture & Art Sale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f3f0;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --text-muted: #6e6e6e;
+      --text-light: #a0a0a0;
+      --border: #e5e2dd;
+      --accent: #b8975a;
+      --btn: #1a1a1a;
+      --btn-text: #ffffff;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .site-brand { text-decoration: none; }
+
+    .site-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+
+    .site-subtitle {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .negotiable-tag {
+      color: var(--accent);
+      font-weight: 500;
+      border-bottom: 1px solid var(--accent);
+      padding-bottom: 1px;
+    }
+
+    .cart-btn {
+      background: none;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      transition: border-color 0.15s;
+    }
+
+    .cart-btn:hover { border-color: var(--text); }
+
+    .cart-count {
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.68rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+    }
+
+    /* ── Page layout ── */
+    .cart-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 4rem;
+    }
+
+    .cart-page-top {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .back-link {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .back-link:hover { color: var(--text); }
+
+    .cart-page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+    }
+
+    .cart-item-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-left: auto;
+    }
+
+    /* ── Cart items ── */
+    .cart-list {
+      background: var(--surface);
+    }
+
+    .cart-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 4rem 0;
+      font-style: italic;
+    }
+
+    .cart-item {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+
+    .cart-item:last-child { border-bottom: none; }
+
+    .cart-item-img {
+      width: 88px;
+      height: 88px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #eeebe6;
+    }
+
+    .cart-item-info { flex: 1; min-width: 0; }
+
+    .cart-item-room {
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+
+    .cart-item-desc {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      margin-bottom: 0.15rem;
+    }
+
+    .cart-item-brand {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: #8c6e4b;
+    }
+
+    .cart-item-id {
+      font-size: 0.62rem;
+      color: #c8c4be;
+      letter-spacing: 0.03em;
+      margin-top: 0.2rem;
+    }
+
+    .cart-item-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .cart-item-price {
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-align: right;
+    }
+
+    .cart-item-unit-price {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .cart-item-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-light);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .cart-item-remove:hover { color: var(--text); }
+
+    /* ── Qty controls ── */
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .qty-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .cart-qty-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 24px;
+      height: 24px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: border-color 0.15s;
+    }
+
+    .cart-qty-btn:hover { border-color: var(--text); }
+    .cart-qty-btn:disabled { opacity: 0.35; cursor: default; border-color: var(--border); }
+
+    .cart-qty-val {
+      font-size: 0.88rem;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .cart-qty-max {
+      font-size: 0.68rem;
+      color: var(--text-light);
+    }
+
+    /* ── Summary ── */
+    .cart-summary {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .cart-total-block {
+      text-align: right;
+    }
+
+    .cart-total-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .cart-total-amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      font-weight: 400;
+    }
+
+    .cart-note {
+      font-size: 0.68rem;
+      color: var(--text-light);
+      font-style: italic;
+      margin-top: 0.4rem;
+    }
+
+    .cart-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 220px;
+    }
+
+    .pdf-btn {
+      background: var(--btn);
+      color: var(--btn-text);
+      border: none;
+      padding: 0.9rem 1.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .pdf-btn:hover { background: #383838; }
+
+    .loading {
+      text-align: center;
+      padding: 4rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="site-brand" href="index.html">
+    <div class="site-title">Mohawk Furniture &amp; Art Sale</div>
+    <div class="site-subtitle">Top quality and condition, <span class="negotiable-tag">prices negotiable</span></div>
+  </a>
+  <button class="cart-btn" onclick="window.location.href='index.html'">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 01-8 0"/>
+    </svg>
+    Back to Listing
+    <span class="cart-count" id="cartCount" style="display:none">0</span>
+  </button>
+</header>
+
+<main class="cart-page">
+  <div class="cart-page-top">
+    <a href="index.html" class="back-link">← Back to Listing</a>
+    <h1 class="cart-page-title">Your Selection</h1>
+    <span class="cart-item-count" id="cartItemCount"></span>
+  </div>
+  <div class="cart-list" id="cartList">
+    <div class="loading">Loading&hellip;</div>
+  </div>
+  <div class="cart-summary" id="cartSummary" style="display:none">
+    <div class="cart-total-block">
+      <div class="cart-total-label">Estimated Total</div>
+      <div class="cart-total-amount" id="cartTotal">$0</div>
+      <div class="cart-note">Suggested prices — all prices are negotiable.</div>
+    </div>
+    <div class="cart-actions">
+      <button class="pdf-btn" id="pdfBtn">Download Item List (PDF)</button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+  let inventory = [];
+  let resalePrices = {};
+  let cart = {}; // { [itemId]: { item, qty } }
+
+  // ── CSV Parser ──────────────────────────────────────────────────────────────
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
+    return lines.slice(1).map(line => {
+      const values = [];
+      let cur = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { values.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      values.push(cur.trim());
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i] || '');
+      return obj;
+    }).filter(obj => obj['AVAIL'] === 'Y' || obj['AVAIL'] === 'R');
+  }
+
+  // ── Cart persistence ────────────────────────────────────────────────────────
+  function saveCart() {
+    const data = {};
+    Object.entries(cart).forEach(([id, { qty }]) => { data[id] = qty; });
+    localStorage.setItem('mohawk_cart', JSON.stringify(data));
+  }
+
+  function loadCart() {
+    // cart is already populated from localStorage qtys + inventory items
+    // called after inventory is loaded
+    const saved = JSON.parse(localStorage.getItem('mohawk_cart') || '{}');
+    cart = {};
+    Object.entries(saved).forEach(([itemId, qty]) => {
+      const item = inventory.find(i => i.ID === itemId);
+      if (item) {
+        const maxQty = parseInt(item.QUANTITY) || 1;
+        cart[itemId] = { item, qty: Math.max(1, Math.min(qty, maxQty)) };
+      }
+    });
+  }
+
+  function removeFromCart(itemId) {
+    delete cart[itemId];
+    saveCart();
+    render();
+  }
+
+  function setCartQty(itemId, qty) {
+    if (!cart[itemId]) return;
+    const maxQty = parseInt(cart[itemId].item.QUANTITY) || 1;
+    qty = Math.max(1, Math.min(qty, maxQty));
+    cart[itemId].qty = qty;
+    saveCart();
+    render();
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  function render() {
+    const listEl    = document.getElementById('cartList');
+    const summaryEl = document.getElementById('cartSummary');
+    const totalEl   = document.getElementById('cartTotal');
+    const countEl   = document.getElementById('cartCount');
+    const itemCountEl = document.getElementById('cartItemCount');
+
+    const entries = Object.values(cart);
+    const totalQty = entries.reduce((s, { qty }) => s + qty, 0);
+
+    countEl.textContent = totalQty;
+    countEl.style.display = totalQty > 0 ? 'flex' : 'none';
+    itemCountEl.textContent = entries.length + ' item' + (entries.length !== 1 ? 's' : '');
+
+    if (entries.length === 0) {
+      listEl.innerHTML = '<div class="cart-empty">Your cart is empty. <a href="index.html">Browse items →</a></div>';
+      summaryEl.style.display = 'none';
+      return;
+    }
+
+    summaryEl.style.display = 'flex';
+
+    let total = 0;
+    let hasUnpriced = false;
+
+    listEl.innerHTML = entries.map(({ item, qty }) => {
+      const imgSrc  = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
+      const resale  = resalePrices[item.ID];
+      const maxQty  = parseInt(item.QUANTITY) || 1;
+      if (resale) total += resale * qty; else hasUnpriced = true;
+
+      const linePrice = resale
+        ? '$' + (resale * qty).toLocaleString('en-US')
+        : 'Inquire for price';
+
+      const unitNote = (resale && qty > 1)
+        ? `<div class="cart-item-unit-price">$${resale.toLocaleString('en-US')} each</div>`
+        : '';
+
+      const qtyControls = maxQty > 1 ? `
+        <div class="cart-item-qty">
+          <span class="qty-label">Qty:</span>
+          <button class="cart-qty-btn" data-id="${item.ID}" data-delta="-1" ${qty <= 1 ? 'disabled' : ''}>−</button>
+          <span class="cart-qty-val">${qty}</span>
+          <button class="cart-qty-btn" data-id="${item.ID}" data-delta="1" ${qty >= maxQty ? 'disabled' : ''}>+</button>
+          <span class="cart-qty-max">of ${maxQty}</span>
+        </div>` : '';
+
+      return `
+        <div class="cart-item">
+          ${imgSrc
+            ? `<img class="cart-item-img" src="${imgSrc}" alt="${item.DESCRIPTION}">`
+            : `<div class="cart-item-img"></div>`}
+          <div class="cart-item-info">
+            <div class="cart-item-room">${item.ROOM || ''}</div>
+            <div class="cart-item-desc">${item.DESCRIPTION || ''}</div>
+            ${item.BRAND ? `<div class="cart-item-brand">${item.BRAND}</div>` : ''}
+            <div class="cart-item-id">${item.ID}</div>
+            ${qtyControls}
+          </div>
+          <div class="cart-item-right">
+            <div class="cart-item-price">${linePrice}</div>
+            ${unitNote}
+            <button class="cart-item-remove" data-itemid="${item.ID}">Remove</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.cart-item-remove').forEach(btn => {
+      btn.addEventListener('click', () => removeFromCart(btn.dataset.itemid));
+    });
+    listEl.querySelectorAll('.cart-qty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const delta = parseInt(btn.dataset.delta);
+        if (cart[id]) setCartQty(id, cart[id].qty + delta);
+      });
+    });
+
+    totalEl.textContent = total > 0
+      ? '$' + total.toLocaleString('en-US') + (hasUnpriced ? '+' : '')
+      : (hasUnpriced ? 'Inquire for price' : '$0');
+  }
+
+  // ── PDF Generation ──────────────────────────────────────────────────────────
+  function generatePDF() {
+    const entries = Object.values(cart);
+    if (entries.length === 0) { alert('Your cart is empty.'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(20);
+    doc.text('Mohawk Furniture & Art Sale', 105, 24, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text('Items selected', 105, 31, { align: 'center' });
+    doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 105, 37, { align: 'center' });
+    doc.setTextColor(0);
+
+    let pdfTotal = 0;
+    let pdfHasUnpriced = false;
+    const rows = entries.map(({ item, qty }) => {
+      const resale = resalePrices[item.ID];
+      if (resale) pdfTotal += resale * qty; else pdfHasUnpriced = true;
+      const linePrice = resale ? '$' + (resale * qty).toLocaleString('en-US') : 'Inquire';
+      return [
+        item.DESCRIPTION || '',
+        item.ROOM        || '',
+        item.TYPE        || '',
+        item.BRAND       || '—',
+        item.DIMENSION   || '—',
+        qty > 1 ? `${qty} × $${resale ? resale.toLocaleString('en-US') : '?'} = ${linePrice}` : linePrice,
+      ];
+    });
+
+    doc.autoTable({
+      startY: 44,
+      head: [['Description', 'Room', 'Type', 'Brand', 'Dimensions', 'Price']],
+      body: rows,
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [26, 26, 26], textColor: 255, fontStyle: 'normal', fontSize: 8 },
+      alternateRowStyles: { fillColor: [248, 246, 243] },
+      columnStyles: {
+        0: { cellWidth: 52, cellPadding: { top: 4, right: 4, bottom: 8, left: 4 } },
+        5: { halign: 'right', cellWidth: 28 },
+      },
+      margin: { left: 14, right: 14 },
+      didDrawCell: function(data) {
+        if (data.section === 'body' && data.column.index === 0) {
+          const id = entries[data.row.index].item.ID;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(170);
+          doc.text(id, data.cell.x + 4, data.cell.y + data.cell.height - 4);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(0);
+        }
+      },
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text('All prices are suggested and negotiable.', 14, finalY);
+    if (pdfTotal > 0) {
+      const totalLabel = 'Suggested total: $' + pdfTotal.toLocaleString('en-US') + (pdfHasUnpriced ? '+' : '');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 26);
+      doc.text(totalLabel, 196, finalY, { align: 'right' });
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(26, 26, 26);
+    doc.text('To purchase, contact: bajia@me.com', 105, 283, { align: 'center' });
+
+    doc.save('mohawk-sale-selection.pdf');
+  }
+
+  document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+
+  // ── Bootstrap ───────────────────────────────────────────────────────────────
+  Promise.all([
+    fetch('mohawk-furnitures/inventory.csv').then(r => r.text()),
+    fetch('scripts/resale_prices.json').then(r => r.json()).catch(() => ({})),
+  ]).then(([csvText, prices]) => {
+    resalePrices = prices;
+    inventory = parseCSV(csvText);
+    loadCart();
+    render();
+  }).catch(() => {
+    document.getElementById('cartList').innerHTML =
+      '<div class="cart-empty">Could not load inventory data.</div>';
+  });
+</script>
+</body>
+</html>
