@@ -335,6 +335,21 @@
 
     .pdf-btn:hover { background: #383838; }
 
+    .clear-btn {
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.9rem 1.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .clear-btn:hover { border-color: var(--text); color: var(--text); }
+
     .loading {
       text-align: center;
       padding: 4rem;
@@ -380,6 +395,7 @@
     </div>
     <div class="cart-actions">
       <button class="pdf-btn" id="pdfBtn">Download Item List (PDF)</button>
+      <button class="clear-btn" id="clearBtn">Clear Cart</button>
     </div>
   </div>
 </main>
@@ -613,6 +629,14 @@
   }
 
   document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (confirm('Remove all items from your cart?')) {
+      cart = {};
+      saveCart();
+      render();
+    }
+  });
 
   // ── Bootstrap ───────────────────────────────────────────────────────────────
   Promise.all([
