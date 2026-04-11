@@ -667,12 +667,18 @@
     <span class="filter-label">Show:</span>
     <div class="avail-filter-group">
       <span class="filter-label">Availability:</span>
-      <button class="filter-pill active" id="availToggle">All Items</button>
-      <button class="filter-pill" id="availOnlyToggle">Available Only</button>
+      <button class="filter-pill active" id="availOnlyToggle">Available</button>
+      <button class="filter-pill" id="availToggle">Show All</button>
+      <button class="filter-pill" id="availReservedToggle">Reserved</button>
     </div>
   </div>
-  <div class="filter-row room-filters" id="roomFilters">
-    <span class="filter-label">Room:</span>
+  <div class="filter-row room-filters" id="roomFilters" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start">
+    <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
+      <span class="filter-label">Room:</span>
+    </div>
+    <div id="reservedByFilters" style="display:none;align-items:center;gap:0.4rem;flex-wrap:wrap;flex-shrink:0">
+      <span class="filter-label">Reserved by:</span>
+    </div>
   </div>
 </div>
 
@@ -723,7 +729,8 @@
   let pendingQty = {};    // { [itemId]: qty } — qty selected on card before adding
   let activeType = 'All';
   let activeRoom = 'All';
-  let showAvailableOnly = false;
+  let availFilter = 'available'; // 'available' | 'all' | 'reserved'
+  let activeReservedBy = 'All';
 
   // ── CSV Parser ─────────────────────────────────────────────────────────────
   function parseCSV(text) {
@@ -742,7 +749,7 @@
       const obj = {};
       headers.forEach((h, i) => obj[h] = values[i] || '');
       return obj;
-    }).filter(obj => obj['AVAIL'] === 'Y' || obj['AVAIL'] === 'R');
+    }).filter(obj => obj['AVAIL'] !== 'N');
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -784,10 +791,10 @@
     if (availGroup) typeEl.appendChild(availGroup);
 
     // Room pills
-    const roomEl = document.getElementById('roomFilters');
-    const roomLabel = roomEl.querySelector('.filter-label');
-    roomEl.innerHTML = '';
-    roomEl.appendChild(roomLabel);
+    const roomWrap = document.getElementById('roomFilters').querySelector('div');
+    const roomLabel = roomWrap.querySelector('.filter-label');
+    roomWrap.innerHTML = '';
+    roomWrap.appendChild(roomLabel);
 
     const subset = activeType === 'All' ? inventory : inventory.filter(i => i.TYPE === activeType);
     const rooms = ['All', ...uniqueOrdered(subset.map(i => i.ROOM).filter(Boolean))];
@@ -800,8 +807,36 @@
         renderFilters();
         renderGrid();
       });
-      roomEl.appendChild(btn);
+      roomWrap.appendChild(btn);
     });
+
+    // Reserved-by pills
+    const rbEl = document.getElementById('reservedByFilters');
+    const rbLabel = rbEl.querySelector('.filter-label');
+    rbEl.innerHTML = '';
+    rbEl.appendChild(rbLabel);
+    if (availFilter === 'reserved') {
+      rbEl.style.display = 'flex';
+      const names = ['All', ...uniqueOrdered(
+        inventory
+          .filter(i => i.AVAIL.startsWith('Reserved'))
+          .map(i => i.AVAIL.replace(/^Reserved by\s*/i, '').trim())
+          .filter(Boolean)
+      )];
+      names.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-pill' + (n === activeReservedBy ? ' active' : '');
+        btn.textContent = n;
+        btn.addEventListener('click', () => {
+          activeReservedBy = n;
+          renderFilters();
+          renderGrid();
+        });
+        rbEl.appendChild(btn);
+      });
+    } else {
+      rbEl.style.display = 'none';
+    }
   }
 
   // ── Render Grid ────────────────────────────────────────────────────────────
@@ -813,7 +848,12 @@
     let items = inventory;
     if (activeType !== 'All') items = items.filter(i => i.TYPE === activeType);
     if (activeRoom !== 'All') items = items.filter(i => i.ROOM === activeRoom);
-    if (showAvailableOnly) items = items.filter(i => i.AVAIL === 'Y');
+    if (availFilter === 'available') items = items.filter(i => i.AVAIL === 'Y');
+    else if (availFilter === 'reserved') {
+      items = items.filter(i => i.AVAIL.startsWith('Reserved'));
+      if (activeReservedBy !== 'All')
+        items = items.filter(i => i.AVAIL.replace(/^Reserved by\s*/i, '').trim() === activeReservedBy);
+    }
 
     if      (activeRoom !== 'All') titleEl.textContent = activeRoom;
     else if (activeType !== 'All') titleEl.textContent = activeType;
@@ -836,7 +876,7 @@
         ? `<div class="price-label">Suggested price</div>
            <div class="product-price">$${resale.toLocaleString('en-US')}</div>`
         : `<div class="product-price no-price">Inquire for price</div>`;
-      const isReserved = item.AVAIL === 'R';
+      const isReserved = item.AVAIL.startsWith('Reserved');
       const availBadge = isReserved
         ? `<span class="avail-badge reserved">Reserved</span>`
         : `<span class="avail-badge available">Available</span>`;
@@ -1126,18 +1166,18 @@
     });
     updateCartUI();
 
-    document.getElementById('availToggle').addEventListener('click', () => {
-      showAvailableOnly = false;
-      document.getElementById('availToggle').classList.add('active');
-      document.getElementById('availOnlyToggle').classList.remove('active');
+    function setAvailFilter(val) {
+      availFilter = val;
+      activeReservedBy = 'All';
+      document.getElementById('availOnlyToggle').classList.toggle('active', val === 'available');
+      document.getElementById('availToggle').classList.toggle('active', val === 'all');
+      document.getElementById('availReservedToggle').classList.toggle('active', val === 'reserved');
+      renderFilters();
       renderGrid();
-    });
-    document.getElementById('availOnlyToggle').addEventListener('click', () => {
-      showAvailableOnly = true;
-      document.getElementById('availOnlyToggle').classList.add('active');
-      document.getElementById('availToggle').classList.remove('active');
-      renderGrid();
-    });
+    }
+    document.getElementById('availOnlyToggle').addEventListener('click', () => setAvailFilter('available'));
+    document.getElementById('availToggle').addEventListener('click', () => setAvailFilter('all'));
+    document.getElementById('availReservedToggle').addEventListener('click', () => setAvailFilter('reserved'));
 
     renderFilters();
     renderGrid();
