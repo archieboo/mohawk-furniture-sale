@@ -513,7 +513,8 @@
         </div>` : '';
 
       const isReserved = item.AVAIL && item.AVAIL.startsWith('Reserved');
-      const reservedTag = isReserved ? ' <span style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:#b06a10;background:#fdf0e0;padding:0.15em 0.45em;border-radius:2px;vertical-align:middle">Reserved</span>' : '';
+      const reservedLabel = isReserved ? item.AVAIL.replace(/^Reserved by\s*/i, 'Reserved by ') : '';
+      const reservedTag = isReserved ? ` <span style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:#b06a10;background:#fdf0e0;padding:0.15em 0.45em;border-radius:2px;vertical-align:middle">${reservedLabel}</span>` : '';
 
       return `
         <div class="cart-item">
@@ -574,7 +575,7 @@
       const resale = resalePrices[item.ID];
       if (resale) pdfTotal += resale * qty; else pdfHasUnpriced = true;
       const linePrice = resale ? '$' + (resale * qty).toLocaleString('en-US') : 'Inquire';
-      const desc = (item.DESCRIPTION || '') + (item.AVAIL && item.AVAIL.startsWith('Reserved') ? ' [Reserved]' : '');
+      const desc = (item.DESCRIPTION || '') + (item.AVAIL && item.AVAIL.startsWith('Reserved') ? ` [${item.AVAIL}]` : '');
       return [
         desc,
         item.ROOM        || '',
