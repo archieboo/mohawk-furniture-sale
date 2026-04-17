@@ -3,3 +3,6 @@
 
 # Numbers source file — large binary, not needed for the website
 mohawk-furnitures/mohawk-furnitures.numbers
+
+# Private admin page — local only, not for GitHub Pages
+admin.html

@@ -424,7 +424,7 @@
       const obj = {};
       headers.forEach((h, i) => obj[h] = values[i] || '');
       return obj;
-    }).filter(obj => obj['AVAIL'] === 'Y' || obj['AVAIL'] === 'R');
+    }).filter(obj => obj['AVAIL'] !== 'N');
   }
 
   // ── Cart persistence ────────────────────────────────────────────────────────
@@ -512,6 +512,9 @@
           <span class="cart-qty-max">of ${maxQty}</span>
         </div>` : '';
 
+      const isReserved = item.AVAIL && item.AVAIL.startsWith('Reserved');
+      const reservedTag = isReserved ? ' <span style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:#b06a10;background:#fdf0e0;padding:0.15em 0.45em;border-radius:2px;vertical-align:middle">Reserved</span>' : '';
+
       return `
         <div class="cart-item">
           ${imgSrc
@@ -519,7 +522,7 @@
             : `<div class="cart-item-img"></div>`}
           <div class="cart-item-info">
             <div class="cart-item-room">${item.ROOM || ''}</div>
-            <div class="cart-item-desc">${item.DESCRIPTION || ''}</div>
+            <div class="cart-item-desc">${item.DESCRIPTION || ''}${reservedTag}</div>
             ${item.BRAND ? `<div class="cart-item-brand">${item.BRAND}</div>` : ''}
             <div class="cart-item-id">${item.ID}</div>
             ${qtyControls}
@@ -571,8 +574,9 @@
       const resale = resalePrices[item.ID];
       if (resale) pdfTotal += resale * qty; else pdfHasUnpriced = true;
       const linePrice = resale ? '$' + (resale * qty).toLocaleString('en-US') : 'Inquire';
+      const desc = (item.DESCRIPTION || '') + (item.AVAIL && item.AVAIL.startsWith('Reserved') ? ' [Reserved]' : '');
       return [
-        item.DESCRIPTION || '',
+        desc,
         item.ROOM        || '',
         item.TYPE        || '',
         item.BRAND       || '—',

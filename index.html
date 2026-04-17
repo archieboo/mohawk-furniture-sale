@@ -353,7 +353,6 @@
 
     .add-to-cart:hover { background: #383838; }
     .add-to-cart.added { background: var(--accent); }
-    .add-to-cart.reserved-btn, .add-to-cart.reserved-btn:hover { background: #c0b8b0; cursor: default; }
 
     .card-qty-control {
       display: flex;
@@ -667,18 +666,13 @@
     <span class="filter-label">Show:</span>
     <div class="avail-filter-group">
       <span class="filter-label">Availability:</span>
-      <button class="filter-pill active" id="availOnlyToggle">Available</button>
-      <button class="filter-pill" id="availToggle">Show All</button>
+      <button class="filter-pill" id="availOnlyToggle">Available</button>
+      <button class="filter-pill active" id="availToggle">Show All</button>
       <button class="filter-pill" id="availReservedToggle">Reserved</button>
     </div>
   </div>
-  <div class="filter-row room-filters" id="roomFilters" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start">
-    <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
-      <span class="filter-label">Room:</span>
-    </div>
-    <div id="reservedByFilters" style="display:none;align-items:center;gap:0.4rem;flex-wrap:wrap;flex-shrink:0">
-      <span class="filter-label">Reserved by:</span>
-    </div>
+  <div class="filter-row room-filters" id="roomFilters">
+    <span class="filter-label">Room:</span>
   </div>
 </div>
 
@@ -729,8 +723,8 @@
   let pendingQty = {};    // { [itemId]: qty } — qty selected on card before adding
   let activeType = 'All';
   let activeRoom = 'All';
-  let availFilter = 'available'; // 'available' | 'all' | 'reserved'
-  let activeReservedBy = 'All';
+  let availFilter = 'all'; // 'available' | 'all' | 'reserved'
+
 
   // ── CSV Parser ─────────────────────────────────────────────────────────────
   function parseCSV(text) {
@@ -791,10 +785,10 @@
     if (availGroup) typeEl.appendChild(availGroup);
 
     // Room pills
-    const roomWrap = document.getElementById('roomFilters').querySelector('div');
-    const roomLabel = roomWrap.querySelector('.filter-label');
-    roomWrap.innerHTML = '';
-    roomWrap.appendChild(roomLabel);
+    const roomEl = document.getElementById('roomFilters');
+    const roomLabel = roomEl.querySelector('.filter-label');
+    roomEl.innerHTML = '';
+    roomEl.appendChild(roomLabel);
 
     const subset = activeType === 'All' ? inventory : inventory.filter(i => i.TYPE === activeType);
     const rooms = ['All', ...uniqueOrdered(subset.map(i => i.ROOM).filter(Boolean))];
@@ -807,36 +801,8 @@
         renderFilters();
         renderGrid();
       });
-      roomWrap.appendChild(btn);
+      roomEl.appendChild(btn);
     });
-
-    // Reserved-by pills
-    const rbEl = document.getElementById('reservedByFilters');
-    const rbLabel = rbEl.querySelector('.filter-label');
-    rbEl.innerHTML = '';
-    rbEl.appendChild(rbLabel);
-    if (availFilter === 'reserved') {
-      rbEl.style.display = 'flex';
-      const names = ['All', ...uniqueOrdered(
-        inventory
-          .filter(i => i.AVAIL.startsWith('Reserved'))
-          .map(i => i.AVAIL.replace(/^Reserved by\s*/i, '').trim())
-          .filter(Boolean)
-      )];
-      names.forEach(n => {
-        const btn = document.createElement('button');
-        btn.className = 'filter-pill' + (n === activeReservedBy ? ' active' : '');
-        btn.textContent = n;
-        btn.addEventListener('click', () => {
-          activeReservedBy = n;
-          renderFilters();
-          renderGrid();
-        });
-        rbEl.appendChild(btn);
-      });
-    } else {
-      rbEl.style.display = 'none';
-    }
   }
 
   // ── Render Grid ────────────────────────────────────────────────────────────
@@ -851,8 +817,6 @@
     if (availFilter === 'available') items = items.filter(i => i.AVAIL === 'Y');
     else if (availFilter === 'reserved') {
       items = items.filter(i => i.AVAIL.startsWith('Reserved'));
-      if (activeReservedBy !== 'All')
-        items = items.filter(i => i.AVAIL.replace(/^Reserved by\s*/i, '').trim() === activeReservedBy);
     }
 
     if      (activeRoom !== 'All') titleEl.textContent = activeRoom;
@@ -897,7 +861,7 @@
                 ${qty > 0 ? `<div class="product-qty">Qty available: ${qty}</div>` : ''}
               </div>
               <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem">
-                ${qty > 1 && !isReserved ? (() => {
+                ${qty > 1 ? (() => {
                   const current = inCart ? cart[item.ID].qty : (pendingQty[item.ID] || 1);
                   const atMin = current <= 1;
                   const atMax = current >= qty;
@@ -907,9 +871,11 @@
                     <button class="card-qty-btn" data-id="${item.ID}" data-delta="1" ${atMax ? 'disabled' : ''}>+</button>
                   </div>`;
                 })() : ''}
-                <button class="add-to-cart ${inCart ? 'added' : ''} ${isReserved ? 'reserved-btn' : ''}"
-                        data-id="${item.ID}" ${isReserved ? 'disabled' : ''}>
-                  ${isReserved ? 'Reserved' : inCart ? 'Added ✓' : 'Add to Cart'}
+                <button class="add-to-cart ${inCart ? 'added' : ''}"
+                        data-id="${item.ID}">
+                  ${isReserved
+                    ? (inCart ? 'Reserved · Added ✓' : 'Reserved · Add')
+                    : (inCart ? 'Added ✓' : 'Add to Cart')}
                 </button>
               </div>
             </div>
@@ -999,6 +965,7 @@
       const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
       const resale = resalePrices[item.ID];
       const maxQty = parseInt(item.QUANTITY) || 1;
+      const isReserved = item.AVAIL.startsWith('Reserved');
       if (resale) total += resale * qty; else hasUnpriced = true;
       const priceText = resale
         ? `$${(resale * qty).toLocaleString('en-US')}${qty > 1 ? ` (${qty} × $${resale.toLocaleString('en-US')})` : ''}`
@@ -1009,13 +976,14 @@
           <span class="cart-qty-val">${qty}</span>
           <button class="cart-qty-btn" data-id="${item.ID}" data-delta="1" ${qty >= maxQty ? 'disabled' : ''}>+</button>
         </div>` : '';
+      const reservedTag = isReserved ? '<span style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:#b06a10;background:#fdf0e0;padding:0.15em 0.45em;border-radius:2px">Reserved</span>' : '';
       return `
         <div class="cart-item">
           ${imgSrc
             ? `<img class="cart-item-img" src="${imgSrc}" alt="${item.DESCRIPTION}">`
             : `<div class="cart-item-img"></div>`}
           <div class="cart-item-info">
-            <div class="cart-item-desc">${item.DESCRIPTION}</div>
+            <div class="cart-item-desc">${item.DESCRIPTION} ${reservedTag}</div>
             <div class="cart-item-room">${item.ROOM}</div>
             ${qtyControls}
             <div class="cart-item-price">${priceText}</div>
@@ -1075,8 +1043,9 @@
       const resale = resalePrices[item.ID];
       if (resale) pdfTotal += resale * qty; else pdfHasUnpriced = true;
       const linePrice = resale ? '$' + (resale * qty).toLocaleString('en-US') : 'Inquire';
+      const desc = (item.DESCRIPTION || '') + (item.AVAIL.startsWith('Reserved') ? ' [Reserved]' : '');
       return [
-        item.DESCRIPTION || '',
+        desc,
         item.ROOM        || '',
         item.TYPE        || '',
         item.BRAND       || '—',
@@ -1168,7 +1137,6 @@
 
     function setAvailFilter(val) {
       availFilter = val;
-      activeReservedBy = 'All';
       document.getElementById('availOnlyToggle').classList.toggle('active', val === 'available');
       document.getElementById('availToggle').classList.toggle('active', val === 'all');
       document.getElementById('availReservedToggle').classList.toggle('active', val === 'reserved');
