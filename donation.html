@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation — Available Items</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f3f0;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --text-muted: #6e6e6e;
+      --text-light: #a0a0a0;
+      --border: #e5e2dd;
+      --accent: #b8975a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+      padding-bottom: 80px; /* room for sticky bar */
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .site-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .site-subtitle {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .back-link {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+    }
+    .back-link:hover { color: var(--text); }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+    }
+
+    .page-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .price-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.35rem 1rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .price-toggle:hover { border-color: var(--text); color: var(--text); }
+    .price-toggle.active { background: var(--text); border-color: var(--text); color: var(--surface); }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .filter-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-right: 0.4rem;
+    }
+
+    .filter-pill {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.3rem 0.85rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-pill:hover { border-color: var(--text); color: var(--text); }
+    .filter-pill.active { background: var(--text); border-color: var(--text); color: var(--surface); }
+
+    /* Table */
+    .items-table {
+      width: 100%;
+      background: var(--surface);
+      border-collapse: collapse;
+    }
+
+    .items-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.75rem 1rem;
+      border-bottom: 2px solid var(--border);
+      font-weight: 500;
+    }
+
+    .items-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .items-table tr:last-child td { border-bottom: none; }
+
+    .items-table tr.selected td { background: #f0f7f3; }
+
+    .item-desc {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.92rem;
+      vertical-align: top;
+    }
+
+    .item-id {
+      font-size: 0.62rem;
+      color: #c8c4be;
+      margin-top: 0.15rem;
+    }
+
+    .item-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      background: #eeebe6;
+      display: block;
+    }
+
+    /* Checkbox column */
+    .col-check {
+      width: 40px;
+      padding-left: 1rem;
+      padding-right: 0;
+      text-align: center;
+    }
+
+    .row-check {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--text);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 4rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .price-cell { text-align: right; }
+
+    /* Sticky selection bar */
+    .selection-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--text);
+      color: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      transform: translateY(100%);
+      transition: transform 0.2s ease;
+      z-index: 200;
+    }
+
+    .selection-bar.visible { transform: translateY(0); }
+
+    .selection-info {
+      font-size: 0.85rem;
+      letter-spacing: 0.03em;
+    }
+
+    .selection-info strong { font-weight: 500; }
+
+    .bar-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .bar-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.4);
+      color: var(--surface);
+      padding: 0.5rem 1.25rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .bar-btn:hover { border-color: rgba(255,255,255,0.9); }
+
+    .bar-btn.primary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--surface);
+    }
+    .bar-btn.primary:hover { background: #e8e5e0; border-color: #e8e5e0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="site-title">Donation — Available Items</div>
+    <div class="site-subtitle">Items not reserved by anyone</div>
+  </div>
+  <a href="index.html" class="back-link">Back to Listing</a>
+</header>
+
+<main class="page">
+  <div class="page-header">
+    <h1 class="page-title">Available for Donation</h1>
+    <span class="page-count" id="pageCount"></span>
+    <button class="price-toggle" id="priceToggle">Show Prices</button>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <table class="items-table" id="itemsTable">
+    <thead>
+      <tr>
+        <th class="col-check"><input type="checkbox" class="row-check" id="selectAll" title="Select all visible"></th>
+        <th></th>
+        <th>Item</th>
+        <th>Room</th>
+        <th>Type</th>
+        <th>Brand</th>
+        <th class="price-col" style="text-align:right;display:none">Price</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="6" class="loading">Loading...</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<!-- Sticky selection bar -->
+<div class="selection-bar" id="selectionBar">
+  <span class="selection-info"><strong id="selCount">0</strong> item<span id="selPlural">s</span> selected</span>
+  <div class="bar-actions">
+    <button class="bar-btn" id="clearSelBtn">Clear</button>
+    <button class="bar-btn primary" id="pdfBtn">Print PDF</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+  let inventory = [];
+  let resalePrices = {};
+  let activeFilter = 'All';
+  let showPrices = false;
+  let selected = new Set(); // item IDs
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
+    return lines.slice(1).map(line => {
+      const values = [];
+      let cur = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { values.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      values.push(cur.trim());
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i] || '');
+      return obj;
+    }).filter(obj => obj['AVAIL'] === 'Y');
+  }
+
+  function parsePrice(raw) {
+    if (!raw || raw === '') return null;
+    const n = parseFloat(raw.replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  }
+
+  function getFilterOptions() {
+    const types = [...new Set(inventory.map(i => i.TYPE).filter(Boolean))].sort();
+    return ['All', ...types];
+  }
+
+  function getVisibleItems() {
+    if (activeFilter === 'All') return inventory;
+    return inventory.filter(i => i.TYPE === activeFilter);
+  }
+
+  function updateSelectionBar() {
+    const count = selected.size;
+    document.getElementById('selCount').textContent = count;
+    document.getElementById('selPlural').textContent = count === 1 ? '' : 's';
+    document.getElementById('selectionBar').classList.toggle('visible', count > 0);
+  }
+
+  function updateSelectAllState() {
+    const visible = getVisibleItems();
+    const allChecked = visible.length > 0 && visible.every(i => selected.has(i.ID));
+    const someChecked = visible.some(i => selected.has(i.ID));
+    const selectAllEl = document.getElementById('selectAll');
+    selectAllEl.checked = allChecked;
+    selectAllEl.indeterminate = !allChecked && someChecked;
+  }
+
+  function render() {
+    // Filters
+    const filtersEl = document.getElementById('filters');
+    filtersEl.innerHTML = '<span class="filter-label">Type:</span>';
+    getFilterOptions().forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-pill' + (opt === activeFilter ? ' active' : '');
+      btn.textContent = opt;
+      btn.addEventListener('click', () => { activeFilter = opt; render(); });
+      filtersEl.appendChild(btn);
+    });
+
+    const items = getVisibleItems();
+    document.getElementById('pageCount').textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
+
+    const priceHeader = document.querySelector('.price-col');
+    priceHeader.style.display = showPrices ? '' : 'none';
+
+    const baseColspan = showPrices ? 7 : 6;
+    const tbody = document.getElementById('tableBody');
+
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${baseColspan}" class="loading" style="font-style:italic">No items found.</td></tr>`;
+    } else {
+      tbody.innerHTML = items.map(item => {
+        const imgSrc = item.IMG ? `mohawk-furnitures/${item.IMG}` : '';
+        const resale = resalePrices[item.ID];
+        const origPrice = parsePrice(item.PRICE);
+        const priceText = resale
+          ? '$' + resale.toLocaleString('en-US')
+          : (origPrice ? '$' + origPrice.toLocaleString('en-US') + ' (orig)' : '—');
+
+        const priceCell = showPrices ? `<td class="price-cell">${priceText}</td>` : '';
+        const isSelected = selected.has(item.ID);
+
+        return `<tr class="${isSelected ? 'selected' : ''}" data-id="${item.ID}">
+          <td class="col-check">
+            <input type="checkbox" class="row-check" data-id="${item.ID}" ${isSelected ? 'checked' : ''}>
+          </td>
+          <td>${imgSrc ? `<img class="item-img" src="${imgSrc}" alt="">` : ''}</td>
+          <td>
+            <div class="item-desc">${item.DESCRIPTION || ''}</div>
+            <div class="item-id">${item.ID}</div>
+          </td>
+          <td>${item.ROOM || ''}</td>
+          <td>${item.TYPE || ''}</td>
+          <td>${item.BRAND || '—'}</td>
+          ${priceCell}
+        </tr>`;
+      }).join('');
+
+      // Row checkbox listeners
+      tbody.querySelectorAll('.row-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const id = cb.dataset.id;
+          if (cb.checked) selected.add(id); else selected.delete(id);
+          const row = cb.closest('tr');
+          row.classList.toggle('selected', cb.checked);
+          updateSelectAllState();
+          updateSelectionBar();
+        });
+      });
+
+      // Clicking the row (not the checkbox directly) also toggles
+      tbody.querySelectorAll('tr[data-id]').forEach(row => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', e => {
+          if (e.target.type === 'checkbox') return; // let checkbox handle it
+          const id = row.dataset.id;
+          const cb = row.querySelector('.row-check');
+          if (selected.has(id)) { selected.delete(id); cb.checked = false; row.classList.remove('selected'); }
+          else { selected.add(id); cb.checked = true; row.classList.add('selected'); }
+          updateSelectAllState();
+          updateSelectionBar();
+        });
+      });
+    }
+
+    updateSelectAllState();
+    updateSelectionBar();
+  }
+
+  // Select-all header checkbox
+  document.getElementById('selectAll').addEventListener('change', function () {
+    const items = getVisibleItems();
+    items.forEach(i => {
+      if (this.checked) selected.add(i.ID); else selected.delete(i.ID);
+    });
+    render();
+  });
+
+  // Price toggle
+  document.getElementById('priceToggle').addEventListener('click', function () {
+    showPrices = !showPrices;
+    this.textContent = showPrices ? 'Hide Prices' : 'Show Prices';
+    this.classList.toggle('active', showPrices);
+    render();
+  });
+
+  // Clear selection
+  document.getElementById('clearSelBtn').addEventListener('click', () => {
+    selected.clear();
+    render();
+  });
+
+  // PDF
+  document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+
+  function generatePDF() {
+    if (selected.size === 0) return;
+
+    const items = inventory.filter(i => selected.has(i.ID));
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(20);
+    doc.text('Mohawk Furniture & Art Sale', 105, 24, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text('Donation List', 105, 31, { align: 'center' });
+    doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 105, 37, { align: 'center' });
+    doc.setTextColor(0);
+
+    const headRow = showPrices
+      ? ['Description', 'Room', 'Type', 'Brand', 'Price']
+      : ['Description', 'Room', 'Type', 'Brand'];
+
+    let pdfTotal = 0;
+    let hasUnpriced = false;
+
+    const rows = items.map(item => {
+      const resale = resalePrices[item.ID];
+      const origPrice = parsePrice(item.PRICE);
+      if (showPrices) {
+        if (resale) pdfTotal += resale; else hasUnpriced = true;
+        const priceText = resale
+          ? '$' + resale.toLocaleString('en-US')
+          : (origPrice ? '$' + origPrice.toLocaleString('en-US') + ' (orig)' : '—');
+        return [item.DESCRIPTION || '', item.ROOM || '', item.TYPE || '', item.BRAND || '—', priceText];
+      }
+      return [item.DESCRIPTION || '', item.ROOM || '', item.TYPE || '', item.BRAND || '—'];
+    });
+
+    const colStyles = showPrices
+      ? { 0: { cellWidth: 60, cellPadding: { top: 4, right: 4, bottom: 8, left: 4 } }, 4: { halign: 'right', cellWidth: 26 } }
+      : { 0: { cellWidth: 72, cellPadding: { top: 4, right: 4, bottom: 8, left: 4 } } };
+
+    doc.autoTable({
+      startY: 44,
+      head: [headRow],
+      body: rows,
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [26, 26, 26], textColor: 255, fontStyle: 'normal', fontSize: 8 },
+      alternateRowStyles: { fillColor: [248, 246, 243] },
+      columnStyles: colStyles,
+      margin: { left: 14, right: 14 },
+      didDrawCell(data) {
+        if (data.section === 'body' && data.column.index === 0) {
+          const id = items[data.row.index].ID;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(170);
+          doc.text(id, data.cell.x + 4, data.cell.y + data.cell.height - 4);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(0);
+        }
+      },
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    if (showPrices && pdfTotal > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 26);
+      const totalLabel = 'Total: $' + pdfTotal.toLocaleString('en-US') + (hasUnpriced ? '+' : '');
+      doc.text(totalLabel, 196, finalY, { align: 'right' });
+    }
+
+    doc.save('donation-list.pdf');
+  }
+
+  Promise.all([
+    fetch('mohawk-furnitures/inventory.csv').then(r => r.text()),
+    fetch('scripts/resale_prices.json').then(r => r.json()).catch(() => ({})),
+  ]).then(([csvText, prices]) => {
+    resalePrices = prices;
+    inventory = parseCSV(csvText);
+    render();
+  }).catch(() => {
+    document.getElementById('tableBody').innerHTML =
+      '<tr><td colspan="6" class="loading">Could not load inventory.</td></tr>';
+  });
+</script>
+</body>
+</html>
